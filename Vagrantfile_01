@@ -1,0 +1,28 @@
+Vagrant.configure("2") do |config|
+	# CentOS Stream 9 base image for all servers
+	config.vm.box = "eurolinux-vagrant/centos-stream-9"
+	config.vm.provision "shell", inline: <<-SHELL
+		sudo yum update -y
+	SHELL
+	# Create nginx web-server
+	config.vm.define "web", primary: true do |web|
+		web.vm.network "private_network", ip: "192.168.50.20"
+		web.vm.network "forwarded_port", guest: 80, host: 8080, id: "nginx"
+		web.vm.provision "shell", inline: <<-SHELL
+			sudo yum install nginx -y
+			sudo systemctl start nginx
+			# set mysql to start at boot
+			sudo systemctl enable nginx			
+		SHELL
+	end
+	
+	# Create MySQL server
+	config.vm.define "db" do |db|
+		db.vm.network "private_network", ip: "192.168.50.21"
+		db.vm.provision "shell", inline: <<-SHELL
+			sudo yum install mysql-server -y
+			sudo systemctl start mysqld
+			sudo systemctl enable mysqld
+		SHELL
+	end
+end
